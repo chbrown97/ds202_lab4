@@ -20,47 +20,51 @@ bio <- read_excel('cyclonesFootball2018.xlsx',sheet ='Biography')
 ```
 Cleaning data
 ```{r}
-str(defense)
 defense$Name <-as.factor(defense$Name)
 defense$Opponent_Opponent <-as.factor(defense$Opponent_Opponent)
 names(defense)[2] <-'Opponent'
 defenseClean<- defense %>% mutate_if(is.character,as.numeric)
-str(defenseClean)
 
-str(offense)
+
 offense$Name <- as.factor(offense$Name)
 offense$Opponent_Opponent <- as.factor(offense$Opponent_Opponent)
 names(offense)[2] <-'Opponent'
 offenseClean <- offense %>% mutate_if(is.character,as.numeric)
-str(offenseClean)
 
-str(bio)
+
 bio$Name <-as.factor(bio$Name)
 bio$Weight <-as.numeric(bio$Weight)
 str(bio)
 bioClean <- bio %>% separate(Height, into = c("Feet","Inches") )%>% mutate_at(c("Feet","Inches"),as.numeric)
+
+str(defenseClean)
+str(offenseClean)
 str(bioClean)
 
 ```
-Tidying (1)
+<br/>Tidying (1)
 ```{r}
-defClean <- defenseClean %>% gather(key = Statistic, value = Amount, 3:11)                       
-ggplot(defClean,aes(x =Amount))+geom_histogram(bins=15)+facet_wrap(~Statistic) + ggtitle("Defense Play Counts Among the Team")
+defenseClean %>% gather(key =Statistics  ,value = Count ,3:11)%>%
+  ggplot(aes(x =Count,fill = Statistics))+geom_histogram(binwidth =1)+facet_wrap(~Statistics,scales = "free")
 
-#def_Spread <- defClean %>% select(Name,Opponent,Tackles_Solo) %>%
-  spread(Opponent,Tackles_Solo) 
-  ggplot(def_Spread,aes(x = 'West Virginia',y= 'Kansas Statae'))+geom_point()
 ```
-Tidying(2)
+<br/>Based on the graph, Turnover_FF, Turnover_FR, and Turnover_INT are rare as only 1 count of each is recorded
 ```{r}
-str(bioClean)
+def_Spread <- defenseClean %>% select(Name,Opponent,Tackles_Solo) %>%
+  filter(Opponent == 'West Virginia'| Opponent == 'Kansas State')%>%
+  spread(Opponent,Tackles_Solo) %>%
+  mutate_all(funs(replace(., is.na(.), 0))) 
+ggplot(def_Spread,aes(x = `West Virginia`,y= `Kansas State`,color = Name,size =5))+geom_point()+xlab("West Virginia")+ylab("Kansas State")+ggtitle("Defense Against Kansas State and West Virginia")
+
+```
+<br/>Based on the plot, ISU had a better defense againsts Kansas State as the number of solo tackles were higher
+<br/>Tidying(2)
+```{r}
 bioClean <- bioClean %>% separate(Hometown,into = c("City","State"),sep =', ')
-str(bioClean)
 head(bioClean)
-bioClean_Count <- bioClean %>% group_by(State) %>% summarize(Num = n())
-bioClean_Count
+bioClean_Count <- bioClean %>% group_by(State) %>% summarize(count = n())
+bioClean_Count[order(-bioClean_Count$count),]
 ```
-
 Joining Data Frames
 ```{r}
 offenseJoin <- left_join(offenseClean,bioClean ,by = "Name")

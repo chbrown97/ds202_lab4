@@ -20,66 +20,79 @@ bio <- read_excel('cyclonesFootball2018.xlsx',sheet ='Biography')
 ```
 Cleaning data
 ```{r}
-str(defense)
 defense$Name <-as.factor(defense$Name)
 defense$Opponent_Opponent <-as.factor(defense$Opponent_Opponent)
 names(defense)[2] <-'Opponent'
 defenseClean<- defense %>% mutate_if(is.character,as.numeric)
-str(defenseClean)
 
-str(offense)
+
 offense$Name <- as.factor(offense$Name)
 offense$Opponent_Opponent <- as.factor(offense$Opponent_Opponent)
 names(offense)[2] <-'Opponent'
 offenseClean <- offense %>% mutate_if(is.character,as.numeric)
-str(offenseClean)
 
-str(bio)
+
 bio$Name <-as.factor(bio$Name)
 bio$Weight <-as.numeric(bio$Weight)
 str(bio)
 bioClean <- bio %>% separate(Height, into = c("Feet","Inches") )%>% mutate_at(c("Feet","Inches"),as.numeric)
+
+str(defenseClean)
+str(offenseClean)
 str(bioClean)
 
 ```
-Tidying (1)
+<br/>Tidying (1)
 ```{r}
-def<-defenseClean %>% gather(key =Statistics  ,value = Count ,3:11)                        
-head(def)
-ggplot(def,aes(x =Count))+geom_histogram(binwidth =1)+facet_wrap(~Statistics,scales = "free")
+defenseClean %>% gather(key =Statistics  ,value = Count ,3:11)%>%
+  ggplot(aes(x =Count,fill = Statistics))+geom_histogram(binwidth =1)+facet_wrap(~Statistics,scales = "free")
 
+```
+<br/>Based on the graph, Turnover_FF, Turnover_FR, and Turnover_INT are rare as only 1 count of each is recorded
+```{r}
 def_Spread <- defenseClean %>% select(Name,Opponent,Tackles_Solo) %>%
-  spread(Opponent,Tackles_Solo) 
-  ggplot(def_Spread,aes(x = 'West Virginia',y= 'Kansas Statae'))+geom_point()
+  filter(Opponent == 'West Virginia'| Opponent == 'Kansas State')%>%
+  spread(Opponent,Tackles_Solo) %>%
+  mutate_all(funs(replace(., is.na(.), 0))) 
+ggplot(def_Spread,aes(x = `West Virginia`,y= `Kansas State`,color = Name,size =5))+geom_point()+xlab("West Virginia")+ylab("Kansas State")+ggtitle("Defense Against Kansas State and West Virginia")
+
 ```
-Tidying(2)
+<br/>Based on the plot, ISU had a better defense againsts Kansas State as the number of solo tackles were higher
+<br/>Tidying(2)
 ```{r}
-str(bioClean)
 bioClean <- bioClean %>% separate(Hometown,into = c("City","State"),sep =', ')
-str(bioClean)
 head(bioClean)
-bioClean_Count <- bioClean %>% group_by(State) %>% summarize(Num = n())
-bioClean_Count
+bioClean_Count <- bioClean %>% group_by(State) %>% summarize(count = n())
+bioClean_Count[order(-bioClean_Count$count),]
 ```
 
 Joining Data Frames
 ```{r}
 offenseJoin <- left_join(offenseClean,bioClean ,by = "Name")
 recieve <- offenseJoin %>% filter(!is.na(offenseJoin$Receiving_YDS))
+
 ggplot(recieve,aes(x =Weight,y = Receiving_YDS,color = Name))+geom_point()
+```
+<br/> There does not seem to be a relationship between Rushing Yards and weight. However, Hakeem Butler seems like an extreme case in this data.
+```{r}
 recieve <- recieve %>% filter(Name != 'Butler, Hakeem')
 ggplot(recieve,aes(x =Weight,y= Receiving_YDS,color =Name))+geom_point()
-
-TD <- offenseJoin %>% select(Name,Position,Receiving_TD,Rushing_TD) %>% 
-  group_by(Name) %>%
+```
+<br/> After removing Butler, we get more of a curve. Lighter players are able to run more yards compared to heavier players
+```{r}
+TD <- offenseJoin %>% select(Name,Position,Receiving_TD,Rushing_TD,Passing_TD) %>% 
+  group_by(Position) %>%
   filter(!is.na(Position))%>%
   mutate_all(funs(replace(., is.na(.), 0))) %>%
-  mutate( total_TD = Receiving_TD+Rushing_TD)
+  summarize(total_TD = sum( Receiving_TD,Rushing_TD,Passing_TD))%>%
+  filter(total_TD > 0)
+  
 
-ggplot(TD, aes(x = total_TD,fill = Name)) +geom_bar()+coord_flip()+facet_wrap(~Position)
+ggplot(TD, aes(x = total_TD,fill = Position)) +geom_histogram(binwidth = 2)+coord_flip() +ylab("total touch downs") +xlab("Count") +ggtitle("Which position scored the most for ISU")
 
-
+    
 ```
+<br/>I was wondering what position scored the most for ISU,so I plot a graph for it. Based on the graph, quarterbacks had the highest amounts of touchdowns, while tight ends scored the leasts
 
 
 
