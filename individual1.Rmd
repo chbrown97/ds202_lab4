@@ -1,0 +1,67 @@
+---
+title: "individual1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Name: Colin Brown
+
+```{r}
+# PART ONE
+library(dplyr)
+library(readxl)
+defense <- read_excel('cyclonesFootball2018.xlsx', sheet='Defensive')
+str(defense)
+
+offense <- read_excel('cyclonesFootball2018.xlsx', sheet='Offensive')
+
+bio <- read_excel('cyclonesFootball2018.xlsx', sheet='Biography')
+
+# Part one (1.): Cleaning all sheets to convert player and opponent names into factors
+defense$Name <- factor(defense$Name)
+defense$Opponent_Opponent <- factor(defense$Opponent_Opponent)
+
+offense$Name <- factor(offense$Name)
+offense$Opponent_Opponent <- factor(offense$Opponent_Opponent)
+
+bio$Name <- factor(bio$Name)
+
+# Part One (2.): Changing statistics to numerical values
+
+defClean <- defense %>% mutate_at(c("Tackles_Solo", "Tackles_ASST",	"Tackles_TFL",	"Tackles_Sack",	"Turnover_FF",	"Turnover_FR", "Turnover_INT",	"Pass_QBH",	"Pass_PB"), as.numeric)
+
+offClean <- offense %>% mutate_at(c("Receiving_REC",	"Receiving_YDS",	"Receiving_TD",	"Rushing_ATT", "Rushing_YDS",	"Rushing_TD",	"Passing_CMP-ATT",	"Passing_YDS",	"Passing_TD",	"Passing_INT"), as.numeric)
+
+bio$Weight <- as.numeric(bio$Weight)
+
+# Part One (3.): Changing Height to numeric
+library(stringr)
+h <- bio$Height
+## here I am taking each height value, finding the substring before the "-", and multiplying it by 12 to convert to inches. Then I take the substring after the "-" and add it to the other value.
+bio$Height <- 12 * as.numeric(substr(h, 0, str_locate(h,"-") - 1)) + as.numeric(substr(h, str_locate(h,"-") + 1, nchar(h)))
+
+bioClean <- bio
+
+str(defClean)
+str(offClean)
+str(bioClean)
+```
+```{r}
+#PART TWO
+library(tidyr)
+defClean <- defClean %>% gather(key = Statistic, value = Amount, 3:11)
+str(defClean)
+
+library(ggplot2)
+ggplot(defClean, aes(x=Amount)) + geom_histogram(bins = 15) + facet_wrap(~Statistic)
+## All turnover plays are rare amongst the team. For tackles, sack tackles are the rarest kind of tackle for a player to excel at.
+
+
+# Separating city and state for biography dataframe
+bioClean <- bioClean %>% separate(Hometown, into=c('City', 'State'), sep=', ') %>% head()
+
+ggplot(bioClean, aes(x=State)) + geom_bar()
+```
