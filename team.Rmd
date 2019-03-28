@@ -70,14 +70,14 @@ recieve <- recieve %>% filter(Name != 'Butler, Hakeem')
 ggplot(recieve,aes(x =Weight,y= Receiving_YDS,color =Name))+geom_point()
 # There does not seem to be a clear relationship between weight and receiving yards. The amount of receiving yards peaks around weight of 225 lbs for an individual player.
 
-
+# By looking at the joined offense and biography data, we want to know which players and which positions scored the most touchdowns. Looking at the bar plot below, the Running Back position had the highest frequency of touchdowns, with Montgomery making the most touchdowns.
 TD <- offenseJoin %>% select(Name,Position,Receiving_TD,Rushing_TD) %>% 
   group_by(Name) %>%
   filter(!is.na(Position))%>%
   mutate_all(funs(replace(., is.na(.), 0))) %>%
   mutate( total_TD = Receiving_TD+Rushing_TD)
 
-ggplot(TD, aes(x = total_TD,fill = Name)) +geom_bar()+coord_flip()+facet_wrap(~Position)
+ggplot(TD, aes(x = total_TD,fill = Name)) +geom_bar()+coord_flip()+facet_wrap(~Position) + xlab("Frequency") + ylab("Number of Touchdowns in a Game") + ggtitle("Touchdowns per Game Across Positions and Players")
 
 
 ```
